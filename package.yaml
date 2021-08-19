@@ -1,0 +1,57 @@
+name: lisp-hs
+
+dependencies: 
+  - base
+  - mtl
+  - containers
+  - exceptions
+  - text
+  - haskeline
+  - megaparsec
+
+default-extensions: 
+  - AllowAmbiguousTypes
+  - BlockArguments
+  - ConstraintKinds
+  - DataKinds
+  - DeriveAnyClass
+  - DeriveFoldable
+  - DeriveFunctor
+  - DeriveTraversable
+  - DerivingStrategies
+  - DerivingVia
+  - DuplicateRecordFields
+  - EmptyCase
+  - FlexibleContexts
+  - FlexibleInstances
+  - FunctionalDependencies
+  - GADTs
+  - GeneralizedNewtypeDeriving
+  - ImportQualifiedPost
+  - KindSignatures
+  - LambdaCase
+  - MultiParamTypeClasses
+  - MultiWayIf
+  - NamedFieldPuns
+  - OverloadedStrings
+  - PatternSynonyms
+  - RankNTypes
+  - ScopedTypeVariables
+  - StandaloneDeriving
+  - TemplateHaskell
+  - TypeApplications
+  - TypeFamilies
+  - TypeOperators
+  - TypeSynonymInstances
+  - UndecidableInstances
+  - ViewPatterns
+  - QuasiQuotes
+
+ghc-options: -Wall -freverse-errors
+executables: 
+  lisp-hs: 
+    main: Main.hs
+    source-dirs: 
+      - app
+  
+

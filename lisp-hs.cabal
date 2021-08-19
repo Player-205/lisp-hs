@@ -1,0 +1,66 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.4.
+--
+-- see: https://github.com/sol/hpack
+
+name:           lisp-hs
+version:        0.0.0
+build-type:     Simple
+
+executable lisp-hs
+  main-is: Main.hs
+  other-modules:
+      AST
+      MyParser
+      Parser
+      Paths_lisp_hs
+  hs-source-dirs:
+      app
+  default-extensions:
+      AllowAmbiguousTypes
+      BlockArguments
+      ConstraintKinds
+      DataKinds
+      DeriveAnyClass
+      DeriveFoldable
+      DeriveFunctor
+      DeriveTraversable
+      DerivingStrategies
+      DerivingVia
+      DuplicateRecordFields
+      EmptyCase
+      FlexibleContexts
+      FlexibleInstances
+      FunctionalDependencies
+      GADTs
+      GeneralizedNewtypeDeriving
+      ImportQualifiedPost
+      KindSignatures
+      LambdaCase
+      MultiParamTypeClasses
+      MultiWayIf
+      NamedFieldPuns
+      OverloadedStrings
+      PatternSynonyms
+      RankNTypes
+      ScopedTypeVariables
+      StandaloneDeriving
+      TemplateHaskell
+      TypeApplications
+      TypeFamilies
+      TypeOperators
+      TypeSynonymInstances
+      UndecidableInstances
+      ViewPatterns
+      QuasiQuotes
+  ghc-options: -Wall -freverse-errors
+  build-depends:
+      base
+    , containers
+    , exceptions
+    , haskeline
+    , megaparsec
+    , mtl
+    , text
+  default-language: Haskell2010
