@@ -8,6 +8,7 @@ dependencies:
   - text
   - haskeline
   - megaparsec
+  - directory
 
 default-extensions: 
   - AllowAmbiguousTypes

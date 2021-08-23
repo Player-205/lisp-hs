@@ -11,24 +11,39 @@ import Text.Printf ( printf )
 import System.Console.Haskeline
     ( defaultSettings, getInputLine, outputStrLn, runInputT, InputT )
 import Data.Foldable ( Foldable(foldl') )
+import Control.Monad.IO.Class
+import System.Directory
 
-import Parser ( parseLisp )
+import Parser ( parseLisp ) 
+import AST
+import Data.Function
+import Evaluation
 
 
 main :: IO ()
-main = runInputT defaultSettings (loop 0 "")
+main = runInputT defaultSettings (loop nullEnv 0 "")
 
-loop :: Int -> String -> InputT IO ()
-loop  count' code = getInputLine (prompt count') >>= \case
-  Nothing -> loop count' code
+loop :: Env -> Int -> String -> InputT IO ()
+loop  env count' code = getInputLine (prompt count') >>= \case
+  Nothing -> loop env count' code
+  Just (words -> (":q": _)) -> outputStrLn "Goodbye!"
+  Just (words -> [":l"]) -> outputStrLn "Missing a file name" >> loop env count' code 
+  Just (words -> (":l": file:_)) -> do
+    exist <- liftIO $ doesFileExist file
+    if exist then do
+      (output, newEnv) <- liftIO $ evaluateLisp env =<< readFile file
+      outputStrLn output
+      loop newEnv 0 ""
+    else outputStrLn ("Invalid file name:" <> file) >> loop env count' code
   Just line@(countBrackets count' -> count) -> if
-    | count > 0  -> loop count newCode
+    | count > 0  -> loop env count newCode
     | count == 0 -> do
-        outputStrLn $ parseLisp newCode
-        loop 0 ""
+        (output, newEnv) <- liftIO $ evaluateLisp env newCode
+        outputStrLn output
+        loop newEnv 0 ""
     | otherwise  -> do
         outputStrLn $ printf "You have %d extra brackets in yor code" count
-        loop 0 ""
+        loop env 0 ""
     where 
       newCode = code <> "\n" <> line
     
@@ -44,3 +59,14 @@ countBrackets count str = let
     _   -> res
     ) (0, 0) str 
   in count + o - c
+
+evaluateLisp :: Env -> String -> IO (String, Env)
+evaluateLisp env t = parseLisp t & \case
+  Right l -> runLisp env (eval l)
+  Left err -> pure (err, env)
+
+
+
+
+
+

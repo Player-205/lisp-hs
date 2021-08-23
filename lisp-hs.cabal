@@ -12,6 +12,7 @@ executable lisp-hs
   main-is: Main.hs
   other-modules:
       AST
+      Evaluation
       MyParser
       Parser
       Paths_lisp_hs
@@ -58,6 +59,7 @@ executable lisp-hs
   build-depends:
       base
     , containers
+    , directory
     , exceptions
     , haskeline
     , megaparsec

@@ -12,7 +12,8 @@ import Data.Functor.Identity ( Identity(Identity) )
 import Text.Printf ( printf )
 import Data.Functor ( ($>), (<&>) )
 import AST
-    ( Number(I, F), KeyWord(Div, Plus, Minus, Times), LispVal(..) )
+import Prelude hiding (LT, GT)
+    
 
 data Input = Input
   { inputLoc :: Int
@@ -81,8 +82,8 @@ string str = Parser \input ->
     (traverse char str <?> "Expected \"" <> str <> "\", but found \"" <> inputStr input <> "\"")
     input
 
-nonOf :: [Char] -> Parser Char
-nonOf l = satisfy (`notElem` l) <?> "Not expected '" <> l <> "', but reached"
+noneOf :: [Char] -> Parser Char
+noneOf l = satisfy (`notElem` l) <?> "Not expected '" <> l <> "', but reached"
 
 choice :: Foldable t => t (Parser a) -> Parser a
 choice = asum
@@ -115,7 +116,7 @@ space = many (oneOf " \n\t") $> ()
 
 
 stringParser :: Parser LispVal
-stringParser = String . Text.pack <$> (char '"' *> many (escape <|> nonOf "\\\"") <* char '"')
+stringParser = String . Text.pack <$> (char '"' *> many (escape <|> noneOf "\\\"") <* char '"')
   where
     escape = char '\\' *> (oneOf "0abfnrtv\"\\" <&> toEscape)
     toEscape x = case x of
@@ -136,14 +137,30 @@ boolParser = choice
 
 keywordParser :: Parser LispVal
 keywordParser = KeyWord <$> choice
-  [ Plus  <$ char '+'
-  , Minus <$ char '-'
-  , Times <$ char '*'
-  , Div   <$ char '/'
+  [ Div    <$ char   '/' 
+  , Times  <$ char   '*' 
+  , Minus  <$ char   '-' 
+  , Plus   <$ char   '+' 
+  , Mod    <$ string "mod"
+  , Concat <$ string "++" 
+  , GT     <$ char   '>' 
+  , GE     <$ string ">=" 
+  , LT     <$ string "<" 
+  , LE     <$ string "<=" 
+  , Eq     <$ char   '=' 
+  , NoEq   <$ string "!=" 
+  , Quote  <$ string "quote"
+  , TypeOf <$ string "typeof"
+  , Cons   <$ string "cons"
+  , Car    <$ string "car"
+  , Cdr    <$ string "cdr"
+  , Cond   <$ string "cond"
+  , Print  <$ string "print"
+  , Read   <$ string "read"
+  , Eval   <$ string "eval"
   ]
-
 symbolParser :: Parser LispVal
-symbolParser = Symbol . Text.pack <$> some (nonOf " ()")
+symbolParser = Symbol . Text.pack <$> some (noneOf " ()")
 
 listParser :: Parser LispVal
 listParser = List <$> (char '(' *> some lispParser <* char ')' )
@@ -161,11 +178,12 @@ lispParser = space *> parse <* space
       ]
 
 
-parseLisp :: String -> String
-parseLisp = testParser (lispParser <* eof)
 
-testParser :: Show a => Parser a -> String -> String
+-- parseLisp :: Env -> String -> IO (String, Env)
+-- parseLisp env = testParser (runLisp env . eval <$> lispParser <* eof)
+
+testParser :: (Show a, Monad m) => Parser (m a) -> String -> m String
 testParser parser input = case runParser parser (Input 0 input) of
-  Left (ParserError loc cause) -> printf "in %d: \n %s\n" loc cause
-  (Right (val, Input _ [])) ->  show val
-  (Right (val, Input n str)) -> show val <> printf "\nrest in %d: %s\n" n str
+  Left (ParserError loc cause) -> pure $ printf "in %d: \n %s\n" loc cause
+  (Right (val, Input _ [])) ->  show <$> val
+  (Right (val, Input n str)) -> val <&> \x -> show x <> printf "\nrest in %d: %s\n" n str
