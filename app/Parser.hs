@@ -12,6 +12,8 @@ import Data.Function ((&))
 import Data.Functor ((<&>))
 
 import Prelude hiding (LT, GT)
+import Data.Map (Map)
+import qualified Data.Map as Map
 
 type Parser = Parsec Void Text
 
@@ -38,39 +40,19 @@ space = L.space
 rawString :: Parser LispVal
 rawString =  String . pack <$> (char '"' *> manyTill L.charLiteral (char '"'))
 
-bool :: Parser LispVal
-bool = choice
-  [ Bool True <$ string "true"
-  , Bool False <$ string "false"
-  ]
+keywords :: Map String LispVal
+keywords =  
+  Map.insert "false" (Bool False)
+  $ Map.insert "true" (Bool True)
+  $ Map.fromList $ fmap (\kw -> (show kw,  KeyWord kw)) [minBound .. maxBound]
 
-keyword :: Parser LispVal
-keyword = KeyWord <$> choice
-  [       Div    <$ char   '/'
-  ,       Times  <$ char   '*'
-  ,       Minus  <$ char   '-'
-  , try $ Concat <$ string "++"
-  ,       Plus   <$ char   '+'
-  ,       Mod    <$ string "mod"
-  , try $ GE     <$ string ">="
-  ,       GT     <$ char   '>'
-  , try $ LE     <$ string "<="
-  ,       LT     <$ string "<"
-  ,       Eq     <$ char   '='
-  ,       NoEq   <$ string "!="
-  ,       Quote  <$ string "quote"
-  ,       TypeOf <$ string "typeof"
-  ,       Cons   <$ string "cons"
-  ,       Car    <$ string "car"
-  ,       Cdr    <$ string "cdr"
-  ,       Cond   <$ string "cond"
-  ,       Print  <$ string "print"
-  ,       Read   <$ string "read"
-  ,       Eval   <$ string "eval"
-  ]
 
 symbol :: Parser LispVal
-symbol = Symbol . pack <$> some (noneOf @[] " \r\t\n()")
+symbol = do
+  content <- some (noneOf @[] " \r\t\n()")
+  case keywords Map.!? content of
+    Just val -> pure val
+    _ -> pure . Symbol . pack $ content
 
 list :: Parser LispVal
 list = List <$>
@@ -84,8 +66,6 @@ lisp = space *> parser <* space
     parser =
       choice
       [ try number
-      , try bool
-      , try keyword
       ,     rawString
       ,     list
       ,     symbol

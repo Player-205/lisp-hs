@@ -21,7 +21,11 @@ import Evaluation
 
 
 main :: IO ()
-main = runInputT defaultSettings (loop nullEnv 0 "")
+main = do
+  env <- nullEnv
+  putStrLn $ unlines [ "0o154 0o151 0o163 0o160 0o055 0o150 0o163"]
+  putStrLn =<< evaluateLisp env =<< readFile "std.lisp"
+  runInputT defaultSettings (loop env 0 "")
 
 loop :: Env -> Int -> String -> InputT IO ()
 loop  env count' code = getInputLine (prompt count') >>= \case
@@ -31,16 +35,16 @@ loop  env count' code = getInputLine (prompt count') >>= \case
   Just (words -> (":l": file:_)) -> do
     exist <- liftIO $ doesFileExist file
     if exist then do
-      (output, newEnv) <- liftIO $ evaluateLisp env =<< readFile file
+      output <- liftIO $ evaluateLisp env =<< readFile file
       outputStrLn output
-      loop newEnv 0 ""
+      loop env 0 ""
     else outputStrLn ("Invalid file name:" <> file) >> loop env count' code
   Just line@(countBrackets count' -> count) -> if
     | count > 0  -> loop env count newCode
     | count == 0 -> do
-        (output, newEnv) <- liftIO $ evaluateLisp env newCode
+        output <- liftIO $ evaluateLisp env newCode
         outputStrLn output
-        loop newEnv 0 ""
+        loop env 0 ""
     | otherwise  -> do
         outputStrLn $ printf "You have %d extra brackets in yor code" count
         loop env 0 ""
@@ -60,13 +64,9 @@ countBrackets count str = let
     ) (0, 0) str 
   in count + o - c
 
-evaluateLisp :: Env -> String -> IO (String, Env)
+evaluateLisp :: Env -> String -> IO String
 evaluateLisp env t = parseLisp t & \case
   Right l -> runLisp env (eval l)
-  Left err -> pure (err, env)
-
-
-
-
+  Left err -> pure err
 
 
