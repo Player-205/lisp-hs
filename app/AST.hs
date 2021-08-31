@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 module AST where
 
 
@@ -12,6 +13,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Control.Monad.Reader
 
+
 data LispVal
   = KeyWord KeyWord
   | Symbol  Text
@@ -21,6 +23,7 @@ data LispVal
   | List    [LispVal]
   | Macro [Text] LispVal
   | Lambda Env [Text] LispVal
+  | Environment Env
   deriving Eq
 
 data KeyWord
@@ -50,6 +53,8 @@ data KeyWord
   | Sym
   | LambdaDecl
   | MacroDecl
+  | Env
+  | EvalIn
  deriving (Eq, Enum, Bounded)
 
 data Number
@@ -106,6 +111,8 @@ instance Show KeyWord where
   show Sym        = "symbol"
   show LambdaDecl = "lambda"
   show MacroDecl  = "macro"
+  show Env        = "env"
+  show EvalIn     = "eval-in"
 
 
 instance Show LispVal where
@@ -115,19 +122,20 @@ instance Show LispVal where
   show (Number num)         = show num
   show (Bool True)          = "true"
   show Bool{}               = "false"
-  show (List l)             = between '(' ')' . unwords . map prettyShow $ l
+  show (List l)             = between '(' ')' . unwords . map show $ l
   show (Macro args body)    =  unwords ["macro", between '(' ')' . Text.unpack . Text.unwords $ args, show body]
   show (Lambda _ args body) = unwords ["lambda", between '(' ')' . Text.unpack . Text.unwords $ args, show body]
-
+  show Environment{} = ""
 prettyShow :: LispVal -> String
-prettyShow val@KeyWord {} = show val
-prettyShow val@Symbol  {} = show val
-prettyShow val@String  {} = show val
-prettyShow val@Number  {} = show val
-prettyShow val@Bool    {} = show val
-prettyShow val@Macro   {} = show val
-prettyShow val@Lambda  {} = show val
-prettyShow val@List    {} = ('\n':) .  unlines . map ("  " <>) . lines . show $ val
+prettyShow val@KeyWord     {} = show val
+prettyShow val@Symbol      {} = show val
+prettyShow val@String      {} = show val
+prettyShow val@Number      {} = show val
+prettyShow val@Bool        {} = show val
+prettyShow val@Macro       {} = show val
+prettyShow val@Lambda      {} = show val
+prettyShow val@Environment {} = show val
+prettyShow val@List        {} = ('\n':) .  unlines . map ("  " <>) . lines . show $ val
 
 
 between :: a -> a -> [a] -> [a]
@@ -139,10 +147,8 @@ between s e str = addEnd (s:str)
 
 
 
-runLisp :: Env -> ReaderT Env (ExceptT Text IO) LispVal -> IO String
-runLisp env action = runExceptT (runReaderT action env) <&> \case
-  Left err -> Text.unpack err
-  Right val -> show val
+runLisp :: Env -> ReaderT Env (ExceptT Text IO) LispVal -> IO (Either Text LispVal)
+runLisp env action = runExceptT (runReaderT action env) 
 
 
 type Frame = IORef (Map Text (IORef LispVal))
@@ -205,3 +211,8 @@ setVal name val = do
 
 nil :: LispVal
 nil = List []
+
+
+
+
+

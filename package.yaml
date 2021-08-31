@@ -9,6 +9,7 @@ dependencies:
   - haskeline
   - megaparsec
   - directory
+  - pretty-simple
 
 default-extensions: 
   - AllowAmbiguousTypes

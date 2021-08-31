@@ -4,6 +4,7 @@ module Main where
 
 
 import Data.Text qualified as Text
+import Data.Text.Lazy qualified as Text.Lazy
 import Data.Text (Text)
 import Data.Text.IO qualified as Text
 import Data.Map     qualified as Map
@@ -19,6 +20,8 @@ import AST
 import Data.Function
 import Evaluation
 
+import Text.Pretty.Simple
+import Data.Functor
 
 main :: IO ()
 main = do
@@ -64,9 +67,22 @@ countBrackets count str = let
     ) (0, 0) str 
   in count + o - c
 
+
+options :: OutputOptions
+options = defaultOutputOptionsDarkBg 
+  { outputOptionsIndentAmount = 2
+  , outputOptionsCompactParens = False
+  }
+
+
 evaluateLisp :: Env -> String -> IO String
 evaluateLisp env t = parseLisp t & \case
-  Right l -> runLisp env (eval l)
+  Right l -> runLisp env (eval l) <&> \case
+    Left err -> Text.unpack err
+    Right val -> Text.Lazy.unpack . pShowOpt options $ val
   Left err -> pure err
 
 
+
+
+    

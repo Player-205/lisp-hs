@@ -26,10 +26,12 @@ eval v@String{}    = pure v
 eval (Symbol name) = getVal name
 eval v@Bool  {}    = pure v
 eval v@Number{}    = pure v
+eval (KeyWord Env) = Environment <$> join (asks newFrame)
 eval v@KeyWord{}   = pure v
 eval v@Lambda{}    = pure v
 eval v@Macro{}     = pure v
 eval v@(List [])   = pure v
+eval Environment{} = throwError "cannot evaluate environment"
 eval (List (arg:args)) = do
   head <- eval arg
   case head of
@@ -102,6 +104,9 @@ evalKeyWord Set        = evaluateSet
 evalKeyWord Sym        = evaluateSym
 evalKeyWord LambdaDecl = evaluateLambdaDecl
 evalKeyWord MacroDecl  = evaluateMacroDecl
+evalKeyWord Env        = \case [] -> pure (KeyWord Env) ; args -> last <$> strict args
+evalKeyWord EvalIn     = evaluateEvalIn <=< strict
+
 
 evaluateDef
  , evaluateSet
@@ -128,8 +133,12 @@ evaluateDef
  , evaluateMinus
  , evaluateTimes
  , evaluateDiv
- , evaluateMod :: (MonadReader Env m, MonadError Text m, MonadIO m, MonadFail m) => [LispVal] -> m LispVal
+ , evaluateMod 
+ , evaluateEvalIn :: (MonadReader Env m, MonadError Text m, MonadIO m, MonadFail m) => [LispVal] -> m LispVal
 
+
+evaluateEvalIn (Environment env:args:_) = withNewEnv env (eval args)
+evaluateEvalIn _ = throwError "eval-in: invalid arguments"
 
 writeEnv :: (MonadError Text m, MonadFail m, MonadIO m, MonadReader Env m) =>
   Text -> (Text -> LispVal -> m b) -> [LispVal] -> m LispVal
@@ -146,7 +155,9 @@ evaluateDef = writeEnv "def" defVal
 evaluateSet = writeEnv "set!" setVal
 
 evaluateSym [] = throwError "symbol: missing an argument"
-evaluateSym (x:_) = Symbol . pack . show <$> eval x
+evaluateSym (x:_) =  eval x <&> \case 
+  String s -> Symbol s
+  x -> Symbol . pack . show $ x
 
 evaluateLambdaDecl [List args, body] = do
   argNames <- asSymbols "lambda" args
@@ -216,15 +227,16 @@ evaluateCons (x:list) = do
   pure (List (x : l))
 
 typeOf :: LispVal -> Text
-typeOf  KeyWord{}   = "KeyWord"
-typeOf  Symbol{}    = "Symbol"
-typeOf  String{}    = "String"
-typeOf  Bool{}      = "Bool"
-typeOf (Number I{}) = "Integer"
-typeOf (Number F{}) = "Float"
-typeOf  List{}      = "List"
-typeOf  Lambda{}    = "Lambda"
-typeOf  Macro{}     = "Macro"
+typeOf  KeyWord{}     = "KeyWord"
+typeOf  Symbol{}      = "Symbol"
+typeOf  String{}      = "String"
+typeOf  Bool{}        = "Bool"
+typeOf (Number I{})   = "Integer"
+typeOf (Number F{})   = "Float"
+typeOf  List{}        = "List"
+typeOf  Lambda{}      = "Lambda"
+typeOf  Macro{}       = "Macro"
+typeOf  Environment{} = "Environment"
 
 evaluateTypeOf [] = throwError "typeof: missing an argument"
 evaluateTypeOf (x:_) = pure $ String (typeOf x)

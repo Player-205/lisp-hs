@@ -66,9 +66,9 @@ lisp = space *> parser <* space
     parser =
       choice
       [ try number
-      ,     rawString
-      ,     list
-      ,     symbol
+      , rawString
+      , list
+      , symbol
       ]
 
 parseLisp :: String -> Either String LispVal
